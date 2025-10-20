@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
-import { callA0LLM, Message } from '@/lib/a0llm';
+import { callA0LLM } from '@/lib/a0llm';
 
 interface Message {
   role: 'user' | 'assistant';
