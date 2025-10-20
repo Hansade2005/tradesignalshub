@@ -11,10 +11,10 @@ export default function Home() {
     const fetchStats = async () => {
       try {
         const cryptoResponse = await axios.get('https://api.coingecko.com/api/v3/coins/list');
-        setStats({ crypto: cryptoResponse.data.length, forex: 3 });
+        setStats({ crypto: cryptoResponse.data.length, forex: 25 });
       } catch (error) {
         console.error('Failed to fetch stats:', error);
-        setStats({ crypto: 100, forex: 3 }); // Fallback
+        setStats({ crypto: 100, forex: 25 }); // Fallback
       }
     };
     fetchStats();
