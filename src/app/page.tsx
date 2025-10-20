@@ -6,6 +6,8 @@ import axios from 'axios';
 
 export default function Home() {
   const [stats, setStats] = useState({ crypto: 0, forex: 3 });
+  const [insights, setInsights] = useState('');
+  const [insightsLoading, setInsightsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -18,6 +20,20 @@ export default function Home() {
       }
     };
     fetchStats();
+
+    const fetchInsights = async () => {
+      try {
+        const response = await fetch('/api/insights');
+        const data = await response.json();
+        setInsights(data.insights);
+      } catch (error) {
+        console.error('Failed to fetch insights:', error);
+        setInsights('Unable to load market insights at this time.');
+      } finally {
+        setInsightsLoading(false);
+      }
+    };
+    fetchInsights();
   }, []);
 
   return (

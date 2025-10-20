@@ -17,6 +17,7 @@ export default function Header() {
             <Link href="/" className="text-gray-700 hover:text-indigo-600 transition-colors">Home</Link>
             <Link href="/crypto" className="text-gray-700 hover:text-indigo-600 transition-colors">Crypto Signals</Link>
             <Link href="/forex" className="text-gray-700 hover:text-indigo-600 transition-colors">Forex Signals</Link>
+            <Link href="/ai-advisor" className="text-gray-700 hover:text-indigo-600 transition-colors">AI Advisor</Link>
           </nav>
           <button
             className="md:hidden text-gray-700"
@@ -32,6 +33,7 @@ export default function Header() {
             <Link href="/" className="block py-2 text-gray-700 hover:text-indigo-600" onClick={() => setIsOpen(false)}>Home</Link>
             <Link href="/crypto" className="block py-2 text-gray-700 hover:text-indigo-600" onClick={() => setIsOpen(false)}>Crypto Signals</Link>
             <Link href="/forex" className="block py-2 text-gray-700 hover:text-indigo-600" onClick={() => setIsOpen(false)}>Forex Signals</Link>
+            <Link href="/ai-advisor" className="block py-2 text-gray-700 hover:text-indigo-600" onClick={() => setIsOpen(false)}>AI Advisor</Link>
           </div>
         )}
       </div>

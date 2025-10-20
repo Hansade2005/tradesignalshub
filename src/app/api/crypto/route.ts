@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { callA0LLM, Message } from '@/lib/a0llm';
 
 interface Signal {
   symbol: string;
@@ -67,47 +68,118 @@ function calculateMACD(prices: number[]): { macd: number[], signal: number[], hi
   return { macd, signal, histogram };
 }
 
-function generateCryptoSignals(data: any[]): Signal[] {
+// Helper function to calculate Bollinger Bands
+function calculateBollingerBands(prices: number[], period: number = 20, stdDev: number = 2): { upper: number[], middle: number[], lower: number[] } {
+  const sma = calculateSMA(prices, period);
+  const upper: number[] = [];
+  const lower: number[] = [];
+  for (let i = period - 1; i < prices.length; i++) {
+    const slice = prices.slice(i - period + 1, i + 1);
+    const mean = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / period;
+    const sd = Math.sqrt(variance);
+    upper.push(mean + stdDev * sd);
+    lower.push(mean - stdDev * sd);
+  }
+  return { upper, middle: sma, lower };
+}
+
+// Helper function to calculate Stochastic Oscillator
+function calculateStochastic(prices: number[], kPeriod: number = 14, dPeriod: number = 3): { k: number[], d: number[] } {
+  const k: number[] = [];
+  for (let i = kPeriod - 1; i < prices.length; i++) {
+    const high = Math.max(...prices.slice(i - kPeriod + 1, i + 1));
+    const low = Math.min(...prices.slice(i - kPeriod + 1, i + 1));
+    const current = prices[i];
+    k.push(((current - low) / (high - low)) * 100);
+  }
+  const d = calculateSMA(k, dPeriod);
+  return { k, d };
+}
+
+async function generateCryptoSignals(data: any[]): Promise<Signal[]> {
   const signals: Signal[] = [];
-  data.forEach(coin => {
+  for (const coin of data) {
     const prices = coin.sparkline_in_7d?.price || [];
-    if (prices.length < 50) return; // Need enough data
+    if (prices.length < 50) continue; // Need enough data
 
-    // RSI
+    // Calculate indicators
     const rsiValues = calculateRSI(prices, 14);
-    if (rsiValues.length > 0) {
-      const rsi = rsiValues[rsiValues.length - 1];
-      if (rsi < 30) signals.push({ symbol: coin.symbol.toUpperCase(), type: 'BUY', indicator: 'RSI', confidence: Math.round((30 - rsi) / 30 * 100) });
-      else if (rsi > 70) signals.push({ symbol: coin.symbol.toUpperCase(), type: 'SELL', indicator: 'RSI', confidence: Math.round((rsi - 70) / 30 * 100) });
-    }
+    const rsi = rsiValues.length > 0 ? rsiValues[rsiValues.length - 1] : 50;
 
-    // SMA Crossover
-    const smaShort = calculateSMA(prices, 10);
-    const smaLong = calculateSMA(prices, 20);
-    if (smaShort.length > 1 && smaLong.length > 1) {
-      const lastShort = smaShort[smaShort.length - 1];
-      const prevShort = smaShort[smaShort.length - 2];
-      const lastLong = smaLong[smaLong.length - 1];
-      const prevLong = smaLong[smaLong.length - 2];
-      if (lastShort > lastLong && prevShort <= prevLong) {
-        signals.push({ symbol: coin.symbol.toUpperCase(), type: 'BUY', indicator: 'SMA Crossover', confidence: 75 });
-      } else if (lastShort < lastLong && prevShort >= prevLong) {
-        signals.push({ symbol: coin.symbol.toUpperCase(), type: 'SELL', indicator: 'SMA Crossover', confidence: 75 });
-      }
-    }
+    const emaShort = calculateEMA(prices, 10);
+    const emaLong = calculateEMA(prices, 20);
+    const emaTrend = emaShort.length > 1 && emaLong.length > 1 ? (emaShort[emaShort.length - 1] > emaLong[emaLong.length - 1] ? 'bullish' : 'bearish') : 'neutral';
 
-    // MACD
-    const { macd, signal, histogram } = calculateMACD(prices);
-    if (histogram.length > 1) {
-      const lastHist = histogram[histogram.length - 1];
-      const prevHist = histogram[histogram.length - 2];
-      if (lastHist > 0 && prevHist < 0) {
-        signals.push({ symbol: coin.symbol.toUpperCase(), type: 'BUY', indicator: 'MACD', confidence: 80 });
-      } else if (lastHist < 0 && prevHist > 0) {
-        signals.push({ symbol: coin.symbol.toUpperCase(), type: 'SELL', indicator: 'MACD', confidence: 80 });
+    const { histogram } = calculateMACD(prices);
+    const macdSignal = histogram.length > 1 ? (histogram[histogram.length - 1] > 0 ? 'bullish' : 'bearish') : 'neutral';
+
+    const { upper, lower } = calculateBollingerBands(prices, 20, 2);
+    const bbPosition = upper.length > 0 && lower.length > 0 ? (prices[prices.length - 1] < lower[lower.length - 1] ? 'oversold' : prices[prices.length - 1] > upper[upper.length - 1] ? 'overbought' : 'normal') : 'normal';
+
+    const { k, d } = calculateStochastic(prices, 14, 3);
+    const stoch = k.length > 0 && d.length > 0 ? (k[k.length - 1] < 20 ? 'oversold' : k[k.length - 1] > 80 ? 'overbought' : 'normal') : 'normal';
+
+    // LLM Prompt
+    const messages: Message[] = [
+      {
+        role: 'system',
+        content: 'You are a professional cryptocurrency trading analyst with 20+ years experience. Analyze the technical indicators and provide a precise trading signal: BUY, SELL, or HOLD with confidence level (80-99%). Focus on high-profit opportunities for beginners. Be extremely accurate and conservative.'
+      },
+      {
+        role: 'user',
+        content: `Analyze ${coin.name} (${coin.symbol.toUpperCase()}):
+- RSI: ${rsi.toFixed(2)} (${rsi < 30 ? 'oversold' : rsi > 70 ? 'overbought' : 'neutral'})
+- EMA Trend: ${emaTrend}
+- MACD: ${macdSignal}
+- Bollinger Bands: ${bbPosition}
+- Stochastic: ${stoch}
+- Current Price: ${coin.current_price}
+- 24h Change: ${coin.price_change_percentage_24h?.toFixed(2)}%
+
+Provide signal in format: SIGNAL: BUY/SELL/HOLD, CONFIDENCE: XX%`
       }
+    ];
+
+    try {
+      const response = await callA0LLM(messages, { temperature: 0.3 });
+      const signalMatch = response.match(/SIGNAL:\s*(BUY|SELL|HOLD)/i);
+      const confidenceMatch = response.match(/CONFIDENCE:\s*(\d+)%/i);
+
+      let type: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
+      let confidence = 85;
+
+      if (signalMatch) {
+        type = signalMatch[1].toUpperCase() as 'BUY' | 'SELL' | 'HOLD';
+      }
+      if (confidenceMatch) {
+        confidence = Math.min(99, Math.max(80, parseInt(confidenceMatch[1])));
+      }
+
+      signals.push({ symbol: coin.symbol.toUpperCase(), type, indicator: 'AI LLM Analysis', confidence });
+    } catch (error) {
+      console.error('LLM Error for', coin.symbol, error);
+      // Fallback to rule-based
+      let buyScore = 0, sellScore = 0;
+      if (rsi < 30) buyScore += 2;
+      if (emaTrend === 'bullish') buyScore += 1.5;
+      if (macdSignal === 'bullish') buyScore += 1.5;
+      if (bbPosition === 'oversold') buyScore += 1;
+      if (stoch === 'oversold') buyScore += 1;
+      if (rsi > 70) sellScore += 2;
+      if (emaTrend === 'bearish') sellScore += 1.5;
+      if (macdSignal === 'bearish') sellScore += 1.5;
+      if (bbPosition === 'overbought') sellScore += 1;
+      if (stoch === 'overbought') sellScore += 1;
+
+      let type: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
+      let confidence = 70;
+      if (buyScore > sellScore + 1) type = 'BUY', confidence = Math.min(95, 70 + (buyScore - sellScore) * 10);
+      else if (sellScore > buyScore + 1) type = 'SELL', confidence = Math.min(95, 70 + (sellScore - buyScore) * 10);
+
+      signals.push({ symbol: coin.symbol.toUpperCase(), type, indicator: 'Fallback Composite', confidence: Math.round(confidence) });
     }
-  });
+  }
   return signals;
 }
 
@@ -117,13 +189,13 @@ export async function GET() {
       params: {
         vs_currency: 'usd',
         order: 'market_cap_desc',
-        per_page: 50,
+        per_page: 200,
         page: 1,
         sparkline: true,
         price_change_percentage: '24h'
       }
     });
-    const signals = generateCryptoSignals(response.data);
+    const signals = await generateCryptoSignals(response.data);
     return NextResponse.json({ signals, data: response.data });
   } catch (error) {
     console.error('API Error:', error);
