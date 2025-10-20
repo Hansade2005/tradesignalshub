@@ -39,7 +39,7 @@ export default function AIAdvisor() {
         userMessage,
       ];
 
-      let newMessages = [...messages, userMessage, { role: 'assistant', content: '' }];
+      let newMessages: Message[] = [...messages, userMessage, { role: 'assistant', content: '' }];
       setMessages(newMessages);
 
       await callA0LLM(conversation as Message[], {
