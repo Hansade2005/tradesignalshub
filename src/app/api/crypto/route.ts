@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import { callA0LLM, Message } from '@/lib/a0llm';
+import { callA0LLM, Message, LLMResponse } from '@/lib/a0llm';
+import { allowedTools, executeTool } from '@/lib/tools';
 
 interface Signal {
   symbol: string;

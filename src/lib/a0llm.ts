@@ -7,12 +7,20 @@ export interface CallA0LLMOptions {
   stream?: boolean;
   onToken?: (token: string) => void;
   temperature?: number;
+  schema?: any; // JSON Schema for structured output
 }
 
-async function nonStreamingCall(messages: Message[], options: CallA0LLMOptions = {}) {
+export interface LLMResponse {
+  completion: string;
+  schema_data?: any;
+  is_structured?: boolean;
+}
+
+async function nonStreamingCall(messages: Message[], options: CallA0LLMOptions = {}): Promise<LLMResponse> {
   const bodyPayload = {
     messages,
     temperature: options.temperature ?? 0.7,
+    ...(options.schema && { schema: options.schema }),
   };
   const res = await fetch('https://api.a0.dev/ai/llm', {
     method: 'POST',
@@ -24,10 +32,14 @@ async function nonStreamingCall(messages: Message[], options: CallA0LLMOptions =
     throw new Error(`LLM non-streaming call failed: ${res.status} ${text}`);
   }
   const json = await res.json();
-  return json.completion ?? json.message ?? '';
+  return {
+    completion: json.completion ?? json.message ?? '',
+    schema_data: json.schema_data,
+    is_structured: json.is_structured,
+  };
 }
 
-export async function callA0LLM(messages: Message[], options: CallA0LLMOptions = {}) {
+export async function callA0LLM(messages: Message[], options: CallA0LLMOptions = {}): Promise<LLMResponse> {
   if (!options.stream) {
     return nonStreamingCall(messages, options);
   }
@@ -36,6 +48,7 @@ export async function callA0LLM(messages: Message[], options: CallA0LLMOptions =
     const bodyPayload = {
       messages,
       temperature: options.temperature ?? 0.7,
+      ...(options.schema && { schema: options.schema }),
     };
     const res = await fetch('https://api.a0.dev/ai/llm', {
       method: 'POST',
@@ -65,7 +78,7 @@ export async function callA0LLM(messages: Message[], options: CallA0LLMOptions =
       }
     }
 
-    return accumulated;
+    return { completion: accumulated, schema_data: undefined, is_structured: false };
   } catch (err) {
     // fallback to non-streaming
     return nonStreamingCall(messages, options);

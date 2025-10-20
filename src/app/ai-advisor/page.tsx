@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Streamdown } from 'streamdown';
+import { callA0LLM, Message } from '@/lib/a0llm';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -28,28 +30,28 @@ export default function AIAdvisor() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/llm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert AI trading advisor with deep knowledge of crypto and forex markets. Provide accurate, helpful advice on signals, strategies, and market analysis. Be concise and professional.',
-            },
-            ...messages,
-            userMessage,
-          ],
-        }),
+      const conversation = [
+        {
+          role: 'system',
+          content: 'You are an expert AI trading advisor with deep knowledge of crypto and forex markets. Provide accurate, helpful advice on signals, strategies, and market analysis. Be concise and professional.',
+        },
+        ...messages,
+        userMessage,
+      ];
+
+      let newMessages = [...messages, userMessage, { role: 'assistant', content: '' }];
+      setMessages(newMessages);
+
+      await callA0LLM(conversation as Message[], {
+        temperature: 0.7,
+        stream: true,
+        onToken: (token: string) => {
+          newMessages[newMessages.length - 1].content += token;
+          setMessages([...newMessages]);
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
-      const assistantMessage: Message = { role: 'assistant', content: data.completion };
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages(newMessages);
     } catch (error) {
       console.error('Error:', error);
       const errorMessage: Message = { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' };
@@ -91,7 +93,7 @@ export default function AIAdvisor() {
                     : 'bg-gray-200 text-gray-800'
                 }`}
               >
-                {msg.content}
+                <Streamdown>{msg.content}</Streamdown>
               </div>
             </div>
           ))}
@@ -137,7 +139,7 @@ export default function AIAdvisor() {
           {insights && (
             <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-indigo-500">
               <h3 className="font-semibold text-lg mb-2">Current Market Analysis</h3>
-              <p className="text-gray-800 leading-relaxed whitespace-pre-line">{insights}</p>
+              <Streamdown>{insights}</Streamdown>
             </div>
           )}
         </div>
