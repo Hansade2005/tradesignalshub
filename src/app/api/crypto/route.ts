@@ -144,8 +144,8 @@ Provide signal in format: SIGNAL: BUY/SELL/HOLD, CONFIDENCE: XX%`
 
     try {
       const response = await callA0LLM(messages, { temperature: 0.3 });
-      const signalMatch = response.match(/SIGNAL:\s*(BUY|SELL|HOLD)/i);
-      const confidenceMatch = response.match(/CONFIDENCE:\s*(\d+)%/i);
+      const signalMatch = response.completion.match(/SIGNAL:\s*(BUY|SELL|HOLD)/i);
+      const confidenceMatch = response.completion.match(/CONFIDENCE:\s*(\d+)%/i);
 
       let type: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
       let confidence = 85;

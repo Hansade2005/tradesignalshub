@@ -44,7 +44,16 @@ export default function AIAdvisor() {
 
       await callA0LLM(conversation as Message[], {
         temperature: 0.7,
-        stream: true,
+        schema: {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['answer', 'call_tool'] },
+            answer: { type: 'string' },
+            tool: { type: 'string' },
+            tool_args: { type: 'object' }
+          },
+          required: ['action']
+        },
         onToken: (token: string) => {
           newMessages[newMessages.length - 1].content += token;
           setMessages([...newMessages]);
