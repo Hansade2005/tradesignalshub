@@ -16,6 +16,8 @@ export default function AIAdvisor() {
   const [loading, setLoading] = useState(false);
   const [cryptoData, setCryptoData] = useState<any[]>([]);
   const [forexData, setForexData] = useState<any>(null);
+  const [cryptoSignals, setCryptoSignals] = useState<any[]>([]);
+  const [forexSignals, setForexSignals] = useState<any[]>([]);
   const [marketDataLoading, setMarketDataLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +40,15 @@ export default function AIAdvisor() {
         const forexResponse = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
         const forexDataFetched = await forexResponse.json();
         setForexData(forexDataFetched);
+
+        // Fetch signals
+        const cryptoSignalsResponse = await fetch('/api/crypto');
+        const cryptoSignalsFetched = await cryptoSignalsResponse.json();
+        setCryptoSignals(cryptoSignalsFetched.signals || []);
+
+        const forexSignalsResponse = await fetch('/api/forex');
+        const forexSignalsFetched = await forexSignalsResponse.json();
+        setForexSignals(forexSignalsFetched.signals || []);
       } catch (error) {
         console.error('Error fetching market data:', error);
       } finally {
@@ -64,13 +75,27 @@ export default function AIAdvisor() {
         ? Object.entries(forexData.rates).slice(0, 10).map(([pair, rate]: [string, any]) => `${pair}: ${rate}`).join('\n')
         : 'Loading forex data...';
 
-      const systemContent = `You are an expert AI trading advisor with deep knowledge of crypto and forex markets. Provide accurate, helpful advice on signals, strategies, and market analysis. Be concise and professional.
+      const cryptoSignalsInfo = cryptoSignals.length > 0
+        ? cryptoSignals.map((signal: any) => `${signal.symbol}: ${signal.type} (${signal.confidence}%), Take Profit: ${signal.takeProfit}, Stop Loss: ${signal.stopLoss}`).join('\n')
+        : 'Loading crypto signals...';
+
+      const forexSignalsInfo = forexSignals.length > 0
+        ? forexSignals.slice(0, 10).map((signal: any) => `${signal.symbol}: ${signal.type} (${signal.confidence}%), Take Profit: ${signal.takeProfit}, Stop Loss: ${signal.stopLoss}`).join('\n')
+        : 'Loading forex signals...';
+
+      const systemContent = `You are an expert AI trading advisor with deep knowledge of crypto and forex markets. Provide accurate, helpful advice on signals, strategies, and market analysis. Be concise and professional. When users ask for signals, provide stop loss and take profit levels based on the available data.
 
 Current Crypto Data (top 10 by market cap):
 ${cryptoInfo}
 
 Current Forex Data (major pairs rates):
-${forexInfo}`;
+${forexInfo}
+
+Current Crypto Signals (top 10):
+${cryptoSignalsInfo}
+
+Current Forex Signals (sample of 10):
+${forexSignalsInfo}`;
 
       const conversation = [
         {
