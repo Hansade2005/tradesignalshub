@@ -90,20 +90,16 @@ export default function AIAdvisor() {
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      code: ({ node, inline, className, children, ...props }) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        return !inline && match ? (
-                          <pre className="bg-gray-100 p-2 rounded">
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          </pre>
-                        ) : (
-                          <code className="bg-gray-100 px-1 rounded" {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
+                      pre: ({ children, ...props }) => (
+                        <pre className="bg-gray-100 p-2 rounded" {...props}>
+                          {children}
+                        </pre>
+                      ),
+                      code: ({ className, children, ...props }) => (
+                        <code className={`${className || ''} bg-gray-100 px-1 rounded`} {...props}>
+                          {children}
+                        </code>
+                      ),
                     }}
                   >
                     {msg.content}
