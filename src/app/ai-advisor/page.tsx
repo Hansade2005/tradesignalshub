@@ -86,17 +86,17 @@ export default function AIAdvisor() {
                     : 'bg-gray-200 text-gray-800'
                 }`}
               >
-                <div className="prose prose-sm max-w-none">
+                <div className={`${msg.role === 'user' ? 'prose prose-invert' : 'prose'} prose-sm max-w-none`}>
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
                       pre: ({ children, ...props }) => (
-                        <pre className="bg-gray-100 p-2 rounded" {...props}>
+                        <pre className={`${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded`} {...props}>
                           {children}
                         </pre>
                       ),
                       code: ({ className, children, ...props }) => (
-                        <code className={`${className || ''} bg-gray-100 px-1 rounded`} {...props}>
+                        <code className={`${className || ''} ${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} px-1 rounded`} {...props}>
                           {children}
                         </code>
                       ),
