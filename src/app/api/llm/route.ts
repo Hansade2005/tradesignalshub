@@ -1,7 +1,11 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_noStore } from 'next/cache';
 import { callA0LLM, type Message } from '@/lib/a0llm';
 
 export async function POST(request: NextRequest) {
+  unstable_noStore();
   try {
     const { messages }: { messages: Message[] } = await request.json();
 

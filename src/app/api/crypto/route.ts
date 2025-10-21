@@ -1,4 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
+import { unstable_noStore } from 'next/cache';
 import axios from 'axios';
 import { callA0LLM, Message, LLMResponse } from '@/lib/a0llm';
 
@@ -201,6 +204,7 @@ Provide signal in format: SIGNAL: BUY/SELL/HOLD, CONFIDENCE: XX%`
 }
 
 export async function GET() {
+  unstable_noStore();
   try {
     const response = await axios.get('https://api.coingecko.com/api/v3/coins/markets', {
       params: {

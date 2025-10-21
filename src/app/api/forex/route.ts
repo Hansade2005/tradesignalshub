@@ -1,4 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
+import { unstable_noStore } from 'next/cache';
 import axios from 'axios';
 import { callA0LLM } from '../../../lib/a0llm';
 
@@ -243,6 +246,7 @@ async function generateForexSignals(historicalRates: { [date: string]: { [curren
 }
 
 export async function GET() {
+  unstable_noStore();
   try {
     const key = 'bf9bb1eae145f608dac50ee8';
     const symbols = ['EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
