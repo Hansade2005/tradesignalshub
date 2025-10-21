@@ -89,7 +89,7 @@ export default function AIAdvisor() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 relative">
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4">
         <h1 className="text-lg md:text-xl font-semibold text-gray-900">AI Trading Advisor</h1>
@@ -97,7 +97,7 @@ export default function AIAdvisor() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 pb-20">
         <div className="max-w-4xl mx-auto space-y-4">
           {messages.map((msg, index) => (
             <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -128,6 +128,27 @@ export default function AIAdvisor() {
               </div>
             </div>
           ))}
+
+          {/* Market Insights Button */}
+          <div className="flex justify-center">
+            <div className="w-full max-w-md">
+              <button
+                onClick={getMarketInsights}
+                disabled={insightsLoading}
+                className="w-full px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                {insightsLoading ? 'Generating Insights...' : '🚀 Get Market Insights'}
+              </button>
+              {insights && (
+                <div className="mt-2 bg-gray-50 p-3 rounded-lg border-l-4 border-indigo-500">
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{insights}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {loading && (
             <div className="flex justify-start">
               <div className="bg-white text-gray-800 mr-12 px-4 py-3 rounded-2xl border border-gray-200">
@@ -143,26 +164,8 @@ export default function AIAdvisor() {
         </div>
       </div>
 
-      {/* Market Insights Button */}
-      <div className="flex-shrink-0 px-4 py-2 md:px-6 border-t border-gray-200 bg-white">
-        <button
-          onClick={getMarketInsights}
-          disabled={insightsLoading}
-          className="w-full md:w-auto px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-        >
-          {insightsLoading ? 'Generating Insights...' : '🚀 Get Market Insights'}
-        </button>
-        {insights && (
-          <div className="mt-2 bg-gray-50 p-3 rounded-lg border-l-4 border-indigo-500">
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{insights}</ReactMarkdown>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3 md:px-6">
+      {/* Input - Fixed at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 md:px-6">
         <div className="max-w-4xl mx-auto flex gap-3">
           <div className="flex-1 relative">
             <input
