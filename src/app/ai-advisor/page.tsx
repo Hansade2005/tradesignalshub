@@ -14,8 +14,9 @@ export default function AIAdvisor() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [insights, setInsights] = useState('');
-  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [cryptoData, setCryptoData] = useState<any[]>([]);
+  const [forexData, setForexData] = useState<any>(null);
+  const [marketDataLoading, setMarketDataLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -27,6 +28,25 @@ export default function AIAdvisor() {
     scrollToBottom();
   }, [messages, loading]);
 
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        const cryptoResponse = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false');
+        const cryptoDataFetched = await cryptoResponse.json();
+        setCryptoData(cryptoDataFetched);
+
+        const forexResponse = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const forexDataFetched = await forexResponse.json();
+        setForexData(forexDataFetched);
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+      } finally {
+        setMarketDataLoading(false);
+      }
+    };
+    fetchMarketData();
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -36,10 +56,26 @@ export default function AIAdvisor() {
     setLoading(true);
 
     try {
+      const cryptoInfo = cryptoData.length > 0
+        ? cryptoData.map((coin: any) => `${coin.name} (${coin.symbol.toUpperCase()}): ${coin.current_price}, 24h change: ${coin.price_change_percentage_24h.toFixed(2)}%`).join('\n')
+        : 'Loading crypto data...';
+
+      const forexInfo = forexData
+        ? Object.entries(forexData.rates).slice(0, 10).map(([pair, rate]: [string, any]) => `${pair}: ${rate}`).join('\n')
+        : 'Loading forex data...';
+
+      const systemContent = `You are an expert AI trading advisor with deep knowledge of crypto and forex markets. Provide accurate, helpful advice on signals, strategies, and market analysis. Be concise and professional.
+
+Current Crypto Data (top 10 by market cap):
+${cryptoInfo}
+
+Current Forex Data (major pairs rates):
+${forexInfo}`;
+
       const conversation = [
         {
           role: 'system',
-          content: 'You are an expert AI trading advisor with deep knowledge of crypto and forex markets. Provide accurate, helpful advice on signals, strategies, and market analysis. Be concise and professional.',
+          content: systemContent,
         },
         ...messages,
         userMessage,
@@ -61,23 +97,6 @@ export default function AIAdvisor() {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getMarketInsights = async () => {
-    setInsightsLoading(true);
-    try {
-      const response = await fetch('/api/insights');
-      if (!response.ok) {
-        throw new Error('Failed to get insights');
-      }
-      const data = await response.json();
-      setInsights(data.insights);
-    } catch (error) {
-      console.error('Error:', error);
-      setInsights('Sorry, I encountered an error while fetching market insights. Please try again.');
-    } finally {
-      setInsightsLoading(false);
     }
   };
 
@@ -123,26 +142,6 @@ export default function AIAdvisor() {
               </div>
             </div>
           ))}
-
-          {/* Market Insights Button */}
-          <div className="flex justify-center">
-            <div className="w-full max-w-md">
-              <button
-                onClick={getMarketInsights}
-                disabled={insightsLoading}
-                className="w-full px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
-                {insightsLoading ? 'Generating Insights...' : '🚀 Get Market Insights'}
-              </button>
-              {insights && (
-                <div className="mt-2 bg-gray-50 p-3 rounded-lg border-l-4 border-indigo-500">
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{insights}</ReactMarkdown>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {loading && (
             <div className="flex justify-start">
