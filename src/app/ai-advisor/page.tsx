@@ -38,16 +38,13 @@ export default function AIAdvisor() {
       let newMessages: Message[] = [...messages, userMessage, { role: 'assistant', content: '' }];
       setMessages(newMessages);
 
-      await callA0LLM(conversation as Message[], {
-        stream: true,
+      const response = await callA0LLM(conversation as Message[], {
+        stream: false,
         temperature: 0.7,
-        onToken: (token: string) => {
-          newMessages[newMessages.length - 1].content += token;
-          setMessages([...newMessages]);
-        },
       });
 
-      setMessages(newMessages);
+      newMessages[newMessages.length - 1].content = response.completion;
+      setMessages([...newMessages]);
     } catch (error) {
       console.error('Error:', error);
       const errorMessage: Message = { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' };
@@ -90,7 +87,27 @@ export default function AIAdvisor() {
                 }`}
               >
                 <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code: ({ node, inline, className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !inline && match ? (
+                          <pre className="bg-gray-100 p-2 rounded">
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        ) : (
+                          <code className="bg-gray-100 px-1 rounded" {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>
