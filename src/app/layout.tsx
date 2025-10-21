@@ -15,11 +15,12 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   const hideFooter = pathname.startsWith('/ai-advisor');
+  const hideHeader = pathname.startsWith('/ai-advisor');
 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Header />
+        {!hideHeader && <Header />}
         <main>{children}</main>
         {!hideFooter && <Footer />}
       </body>
