@@ -62,8 +62,7 @@
     "remark-gfm": "^4.0.1",
     "@tanstack/react-table": "^8.20.5",
     "axios": "^1.0.0",
-    "recharts": "^2.0.0",
-    "streamdown": "^1.0.0"
+    "recharts": "^2.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
@@ -75,6 +74,7 @@
     "postcss": "^8.4.32",
     "eslint": "^8.55.0",
     "eslint-config-next": "14.0.4",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "@tailwindcss/typography": "^1.0.0"
   }
 }

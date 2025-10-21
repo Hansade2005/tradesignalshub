@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Streamdown } from 'streamdown';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { callA0LLM, Message } from '@/lib/a0llm';
 
 export default function AIAdvisor() {
@@ -38,17 +39,8 @@ export default function AIAdvisor() {
       setMessages(newMessages);
 
       await callA0LLM(conversation as Message[], {
+        stream: true,
         temperature: 0.7,
-        schema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['answer', 'call_tool'] },
-            answer: { type: 'string' },
-            tool: { type: 'string' },
-            tool_args: { type: 'object' }
-          },
-          required: ['action']
-        },
         onToken: (token: string) => {
           newMessages[newMessages.length - 1].content += token;
           setMessages([...newMessages]);
@@ -97,7 +89,9 @@ export default function AIAdvisor() {
                     : 'bg-gray-200 text-gray-800'
                 }`}
               >
-                <Streamdown>{msg.content}</Streamdown>
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                </div>
               </div>
             </div>
           ))}
@@ -143,7 +137,9 @@ export default function AIAdvisor() {
           {insights && (
             <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-indigo-500">
               <h3 className="font-semibold text-lg mb-2">Current Market Analysis</h3>
-              <Streamdown>{insights}</Streamdown>
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{insights}</ReactMarkdown>
+              </div>
             </div>
           )}
         </div>
