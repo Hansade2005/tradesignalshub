@@ -3,9 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { callA0LLM, Message } from '@/lib/a0llm';
+import { useTheme } from '@/hooks';
 
 export default function AIAdvisor() {
+  const { resolvedTheme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -149,16 +153,23 @@ ${forexSignalsInfo}`;
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      pre: ({ children, ...props }) => (
-                        <pre className={`${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded-md`} {...props}>
-                          {children}
-                        </pre>
-                      ),
-                      code: ({ className, children, ...props }) => (
-                        <code className={`${className || ''} ${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} px-1 py-0.5 rounded text-xs`} {...props}>
-                          {children}
-                        </code>
-                      ),
+                      code: ({ node, inline, className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !inline && match ? (
+                          <SyntaxHighlighter
+                            style={resolvedTheme === 'dark' ? oneDark : oneLight}
+                            language={match[1]}
+                            PreTag="div"
+                            {...props}
+                          >
+                            {String(children).replace(/\n$/, '')}
+                          </SyntaxHighlighter>
+                        ) : (
+                          <code className={`${className || ''} ${msg.role === 'user' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-800'} px-1 py-0.5 rounded text-xs`} {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
                     }}
                   >
                     {msg.content}

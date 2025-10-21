@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import './globals.css'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { ThemeProvider } from '../components/ThemeProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,12 +19,14 @@ export default function RootLayout({
   const hideHeader = pathname.startsWith('/ai-advisor');
 
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        {!hideHeader && <Header />}
-        <main>{children}</main>
-        {!hideFooter && <Footer />}
-      </body>
-    </html>
+    <ThemeProvider>
+      <html lang="en">
+        <body className={inter.className}>
+          {!hideHeader && <Header />}
+          <main>{children}</main>
+          {!hideFooter && <Footer />}
+        </body>
+      </html>
+    </ThemeProvider>
   )
 }

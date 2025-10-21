@@ -62,7 +62,8 @@
     "remark-gfm": "^4.0.1",
     "@tanstack/react-table": "^8.20.5",
     "axios": "^1.0.0",
-    "recharts": "^2.0.0"
+    "recharts": "^2.0.0",
+    "react-syntax-highlighter": "15.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
