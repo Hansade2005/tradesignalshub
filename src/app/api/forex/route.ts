@@ -141,14 +141,37 @@ Based on these indicators, what is your trading signal? Respond with ONLY: SIGNA
       { role: 'user' as const, content: prompt }
     ];
 
-    const response = await callA0LLM(messages, { temperature: 0.1 }); // Low temperature for consistent analysis
+    const response = await callA0LLM(messages, {
+      temperature: 0.1,
+      schema: {
+        type: 'object',
+        properties: {
+          signal: { type: 'string', enum: ['BUY', 'SELL', 'HOLD'] },
+          confidence: { type: 'number', minimum: 0, maximum: 100 }
+        },
+        required: ['signal', 'confidence']
+      }
+    }); // Low temperature for consistent analysis
 
     // Parse response
-    const signalMatch = response.match(/SIGNAL:\s*(BUY|SELL|HOLD)/i);
-    const confidenceMatch = response.match(/CONFIDENCE:\s*(\d+)/i);
+    let type: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
+    let confidence = 50;
 
-    const type = signalMatch ? signalMatch[1].toUpperCase() as 'BUY' | 'SELL' | 'HOLD' : 'HOLD';
-    const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 50;
+    if (response.schema_data && response.schema_data.signal && response.schema_data.confidence !== undefined) {
+      type = response.schema_data.signal;
+      confidence = response.schema_data.confidence;
+    } else {
+      // Fallback to parsing completion
+      const signalMatch = response.completion.match(/SIGNAL:\s*(BUY|SELL|HOLD)/i);
+      const confidenceMatch = response.completion.match(/CONFIDENCE:\s*(\d+)/i);
+
+      if (signalMatch) {
+        type = signalMatch[1].toUpperCase() as 'BUY' | 'SELL' | 'HOLD';
+      }
+      if (confidenceMatch) {
+        confidence = parseInt(confidenceMatch[1]);
+      }
+    }
 
     return { type, confidence: Math.max(0, Math.min(100, confidence)) };
   } catch (error) {

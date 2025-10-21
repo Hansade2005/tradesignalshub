@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
-import { callA0LLM } from '@/lib/a0llm';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
+import { callA0LLM, Message } from '@/lib/a0llm';
 
 export default function AIAdvisor() {
   const [messages, setMessages] = useState<Message[]>([

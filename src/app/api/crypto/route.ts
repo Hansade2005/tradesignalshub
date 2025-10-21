@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { callA0LLM, Message, LLMResponse } from '@/lib/a0llm';
-import { allowedTools, executeTool } from '@/lib/tools';
 
 interface Signal {
   symbol: string;
@@ -143,18 +142,35 @@ Provide signal in format: SIGNAL: BUY/SELL/HOLD, CONFIDENCE: XX%`
     ];
 
     try {
-      const response = await callA0LLM(messages, { temperature: 0.3 });
-      const signalMatch = response.completion.match(/SIGNAL:\s*(BUY|SELL|HOLD)/i);
-      const confidenceMatch = response.completion.match(/CONFIDENCE:\s*(\d+)%/i);
+      const response = await callA0LLM(messages, {
+        temperature: 0.3,
+        schema: {
+          type: 'object',
+          properties: {
+            signal: { type: 'string', enum: ['BUY', 'SELL', 'HOLD'] },
+            confidence: { type: 'number', minimum: 0, maximum: 100 }
+          },
+          required: ['signal', 'confidence']
+        }
+      });
 
       let type: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
       let confidence = 85;
 
-      if (signalMatch) {
-        type = signalMatch[1].toUpperCase() as 'BUY' | 'SELL' | 'HOLD';
-      }
-      if (confidenceMatch) {
-        confidence = Math.min(99, Math.max(80, parseInt(confidenceMatch[1])));
+      if (response.schema_data && response.schema_data.signal && response.schema_data.confidence) {
+        type = response.schema_data.signal;
+        confidence = Math.min(99, Math.max(80, response.schema_data.confidence));
+      } else {
+        // Fallback to parsing completion
+        const signalMatch = response.completion.match(/SIGNAL:\s*(BUY|SELL|HOLD)/i);
+        const confidenceMatch = response.completion.match(/CONFIDENCE:\s*(\d+)%/i);
+
+        if (signalMatch) {
+          type = signalMatch[1].toUpperCase() as 'BUY' | 'SELL' | 'HOLD';
+        }
+        if (confidenceMatch) {
+          confidence = Math.min(99, Math.max(80, parseInt(confidenceMatch[1])));
+        }
       }
 
       signals.push({ symbol: coin.symbol.toUpperCase(), type, indicator: 'AI LLM Analysis', confidence });
