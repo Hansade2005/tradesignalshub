@@ -3,4 +3,6 @@ export interface Signal {
   type: 'BUY' | 'SELL' | 'HOLD';
   indicator: string;
   confidence: number;
+  takeProfit: number;
+  stopLoss: number;
 }

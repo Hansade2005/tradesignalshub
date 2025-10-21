@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { callA0LLM, Message } from '@/lib/a0llm';
@@ -16,6 +16,16 @@ export default function AIAdvisor() {
   const [loading, setLoading] = useState(false);
   const [insights, setInsights] = useState('');
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -71,32 +81,42 @@ export default function AIAdvisor() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center text-indigo-600 mb-8">AI Trading Advisor</h1>
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6 max-h-96 overflow-y-auto">
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4">
+        <h1 className="text-lg md:text-xl font-semibold text-gray-900">AI Trading Advisor</h1>
+        <p className="text-sm text-gray-600">Ask about signals, strategies, and market analysis</p>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+        <div className="max-w-4xl mx-auto space-y-4">
           {messages.map((msg, index) => (
-            <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-              <div
-                className={`inline-block px-4 py-2 rounded-lg ${
-                  msg.role === 'user'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
-              >
+            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl px-4 py-3 rounded-2xl ${
+                msg.role === 'user'
+                  ? 'bg-indigo-600 text-white ml-12'
+                  : 'bg-white text-gray-800 mr-12 border border-gray-200'
+              }`}>
                 <div className={`${msg.role === 'user' ? 'prose prose-invert' : 'prose'} prose-sm max-w-none`}>
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
                       pre: ({ children, ...props }) => (
-                        <pre className={`${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded`} {...props}>
+                        <pre className={`${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded-md`} {...props}>
                           {children}
                         </pre>
                       ),
                       code: ({ className, children, ...props }) => (
-                        <code className={`${className || ''} ${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} px-1 rounded`} {...props}>
+                        <code className={`${className || ''} ${msg.role === 'user' ? 'bg-gray-700' : 'bg-gray-100'} px-1 py-0.5 rounded text-xs`} {...props}>
                           {children}
                         </code>
                       ),
@@ -109,52 +129,62 @@ export default function AIAdvisor() {
             </div>
           ))}
           {loading && (
-            <div className="text-left mb-4">
-              <div className="inline-block px-4 py-2 rounded-lg bg-gray-200 text-gray-800">
-                Thinking...
+            <div className="flex justify-start">
+              <div className="bg-white text-gray-800 mr-12 px-4 py-3 rounded-2xl border border-gray-200">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
+      </div>
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Ask about trading signals, strategies, or market analysis..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            disabled={loading}
-          />
+      {/* Market Insights Button */}
+      <div className="flex-shrink-0 px-4 py-2 md:px-6 border-t border-gray-200 bg-white">
+        <button
+          onClick={getMarketInsights}
+          disabled={insightsLoading}
+          className="w-full md:w-auto px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+        >
+          {insightsLoading ? 'Generating Insights...' : '🚀 Get Market Insights'}
+        </button>
+        {insights && (
+          <div className="mt-2 bg-gray-50 p-3 rounded-lg border-l-4 border-indigo-500">
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{insights}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3 md:px-6">
+        <div className="max-w-4xl mx-auto flex gap-3">
+          <div className="flex-1 relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask about trading signals, strategies, or market analysis..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent pr-12"
+              disabled={loading}
+            />
+          </div>
           <button
             onClick={sendMessage}
-            disabled={loading}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            disabled={loading || !input.trim()}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
           >
-            Send
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
           </button>
-        </div>
-
-        {/* Market Insights Section */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-indigo-600 mb-4">🚀 AI Market Insights</h2>
-          <p className="text-gray-600 mb-4">Get real-time AI-powered market analysis based on current crypto and forex data.</p>
-          <button
-            onClick={getMarketInsights}
-            disabled={insightsLoading}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 mb-4"
-          >
-            {insightsLoading ? 'Generating Insights...' : 'Get Market Insights'}
-          </button>
-          {insights && (
-            <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-indigo-500">
-              <h3 className="font-semibold text-lg mb-2">Current Market Analysis</h3>
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{insights}</ReactMarkdown>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

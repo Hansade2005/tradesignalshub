@@ -10,6 +10,8 @@ interface Signal {
   type: 'BUY' | 'SELL' | 'HOLD';
   indicator: string;
   confidence: number;
+  takeProfit: number;
+  stopLoss: number;
 }
 
 // Helper function to calculate SMA
@@ -176,7 +178,11 @@ Provide signal in format: SIGNAL: BUY/SELL/HOLD, CONFIDENCE: XX%`
         }
       }
 
-      signals.push({ symbol: coin.symbol.toUpperCase(), type, indicator: 'AI LLM Analysis', confidence });
+      const currentPrice = coin.current_price;
+      const takeProfit = type === 'BUY' ? currentPrice * 1.05 : type === 'SELL' ? currentPrice * 0.95 : currentPrice;
+      const stopLoss = type === 'BUY' ? currentPrice * 0.98 : type === 'SELL' ? currentPrice * 1.02 : currentPrice;
+
+      signals.push({ symbol: coin.symbol.toUpperCase(), type, indicator: 'AI LLM Analysis', confidence, takeProfit, stopLoss });
     } catch (error) {
       console.error('LLM Error for', coin.symbol, error);
       // Fallback to rule-based
@@ -197,7 +203,11 @@ Provide signal in format: SIGNAL: BUY/SELL/HOLD, CONFIDENCE: XX%`
       if (buyScore > sellScore + 1) type = 'BUY', confidence = Math.min(95, 70 + (buyScore - sellScore) * 10);
       else if (sellScore > buyScore + 1) type = 'SELL', confidence = Math.min(95, 70 + (sellScore - buyScore) * 10);
 
-      signals.push({ symbol: coin.symbol.toUpperCase(), type, indicator: 'Fallback Composite', confidence: Math.round(confidence) });
+      const currentPrice = coin.current_price;
+      const takeProfit = type === 'BUY' ? currentPrice * 1.05 : type === 'SELL' ? currentPrice * 0.95 : currentPrice;
+      const stopLoss = type === 'BUY' ? currentPrice * 0.98 : type === 'SELL' ? currentPrice * 1.02 : currentPrice;
+
+      signals.push({ symbol: coin.symbol.toUpperCase(), type, indicator: 'Fallback Composite', confidence: Math.round(confidence), takeProfit, stopLoss });
     }
   }
   return signals;

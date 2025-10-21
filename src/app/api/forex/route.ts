@@ -10,6 +10,8 @@ interface Signal {
   type: 'BUY' | 'SELL' | 'HOLD';
   indicator: string;
   confidence: number;
+  takeProfit: number;
+  stopLoss: number;
 }
 
 // Helper function to calculate SMA
@@ -233,11 +235,17 @@ async function generateForexSignals(historicalRates: { [date: string]: { [curren
 
     if (prices.length >= 50) { // Ensure we have enough data
       const signal = await generateSignalForPair(prices);
+      const currentPrice = prices[prices.length - 1];
+      const takeProfit = signal.type === 'BUY' ? currentPrice * 1.05 : signal.type === 'SELL' ? currentPrice * 0.95 : currentPrice;
+      const stopLoss = signal.type === 'BUY' ? currentPrice * 0.98 : signal.type === 'SELL' ? currentPrice * 1.02 : currentPrice;
+
       signals.push({
         symbol: pair,
         type: signal.type,
         indicator: 'AI-Driven Multi-Indicator Analysis',
-        confidence: signal.confidence
+        confidence: signal.confidence,
+        takeProfit,
+        stopLoss
       });
     }
   }
@@ -278,9 +286,9 @@ export async function GET() {
     console.error('API Error:', error);
     // Fallback signals in case of error
     const fallbackSignals: Signal[] = [
-      { symbol: 'EURUSD', type: 'HOLD', indicator: 'Fallback Mode', confidence: 50 },
-      { symbol: 'GBPUSD', type: 'HOLD', indicator: 'Fallback Mode', confidence: 50 },
-      { symbol: 'USDJPY', type: 'HOLD', indicator: 'Fallback Mode', confidence: 50 },
+      { symbol: 'EURUSD', type: 'HOLD', indicator: 'Fallback Mode', confidence: 50, takeProfit: 1.08, stopLoss: 1.06 },
+      { symbol: 'GBPUSD', type: 'HOLD', indicator: 'Fallback Mode', confidence: 50, takeProfit: 1.28, stopLoss: 1.26 },
+      { symbol: 'USDJPY', type: 'HOLD', indicator: 'Fallback Mode', confidence: 50, takeProfit: 150, stopLoss: 148 },
     ];
     return NextResponse.json({ signals: fallbackSignals, error: 'Using fallback data' });
   }

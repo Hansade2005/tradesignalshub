@@ -5,6 +5,8 @@ interface Signal {
   type: 'BUY' | 'SELL' | 'HOLD';
   indicator: string;
   confidence: number;
+  takeProfit: number;
+  stopLoss: number;
 }
 
 interface SignalCardProps {
@@ -28,6 +30,10 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal }) => {
     }
   };
 
+  const formatPrice = (price: number) => {
+    return price.toFixed(signal.symbol.includes('JPY') ? 2 : 4);
+  };
+
   return (
     <div className={`p-4 bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 border-2 ${getColor(signal.type)} animate-fade-in`}>
       <div className="flex justify-between items-center mb-2">
@@ -37,7 +43,9 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal }) => {
         </span>
       </div>
       <p className="text-sm text-gray-600 mb-1">Indicator: <strong>{signal.indicator}</strong></p>
-      <p className="text-sm text-gray-600">Confidence: <strong>{signal.confidence}%</strong></p>
+      <p className="text-sm text-gray-600 mb-1">Confidence: <strong>{signal.confidence}%</strong></p>
+      <p className="text-sm text-gray-600 mb-1">Take Profit: <strong className="text-green-600">${formatPrice(signal.takeProfit)}</strong></p>
+      <p className="text-sm text-gray-600 mb-1">Stop Loss: <strong className="text-red-600">${formatPrice(signal.stopLoss)}</strong></p>
       <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
         <div className={`h-2 rounded-full ${signal.type === 'BUY' ? 'bg-green-500' : signal.type === 'SELL' ? 'bg-red-500' : 'bg-gray-500'}`} style={{ width: `${signal.confidence}%` }}></div>
       </div>
