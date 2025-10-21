@@ -38,7 +38,7 @@ Provide insights in a professional, informative tone.`;
 
     const insights = await callA0LLM(messages);
 
-    return NextResponse.json({ insights });
+    return NextResponse.json({ insights: insights.completion });
   } catch (error) {
     console.error('Error generating insights:', error);
     return NextResponse.json({ error: 'Failed to generate insights' }, { status: 500 });
